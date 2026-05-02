@@ -353,8 +353,11 @@ function af(){
         || (l.organizer||'').toLowerCase().indexOf(q)>-1;
   });
   F.sort(function(a,b){
+    var sw={'未开始':0,'已过时':1,'未知':2};
+    var swa=sw[a.status]||3, swb=sw[b.status]||3;
+    if(swa!==swb) return swa-swb;
     var va=a.formatted_time||'', vb=b.formatted_time||'';
-    if(a.status==='已过时'&&b.status==='已过时')
+    if(a.status==='已过时')
       return SA ? vb.localeCompare(va) : va.localeCompare(vb);
     return SA ? va.localeCompare(vb) : vb.localeCompare(va);
   });

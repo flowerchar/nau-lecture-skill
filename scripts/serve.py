@@ -111,8 +111,32 @@ def enrich_background(server):
 
     print(f"\n  [DONE] 全部完成: 总计 {stats['total']} 条 "
           f"(未开始 {stats['not_started']}, 已过时 {stats['expired']}, 未知 {stats['unknown']})")
-    print(f"\n  数据已就绪，5 秒后自动关闭服务...")
-    threading.Timer(5, server.shutdown).start()
+    print(f"")
+    print_terminal_summary(sorted_lectures)
+    print(f"")
+
+    url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+    print(f"  [WEB] 网页查看: {url}")
+    print(f"  按 Ctrl+C 停止服务")
+    # 不自动关闭，让用户手动 Ctrl+C
+
+
+def print_terminal_summary(lectures):
+    """在终端打印讲座摘要（未开始 → 已过时 → 未知）"""
+    icons = {"未开始": "●", "已过时": "O", "未知": "?"}
+    print(f"  {'─' * 52}")
+    print(f"  {'状态':<6} {'时间':<18} {'标题':<28}")
+    print(f"  {'─' * 52}")
+    for l in lectures:
+        icon = icons.get(l["status"], "?")
+        title = l["title"]
+        if len(title) > 26:
+            title = title[:25] + "…"
+        t = l.get("formatted_time", "无")
+        if len(t) >= 16:
+            t = t[:16]
+        print(f"  {icon} {l['status']:<4} {t:<18} {title}")
+    print(f"  {'─' * 52}")
 
 
 def main():
