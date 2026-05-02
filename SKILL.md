@@ -55,20 +55,19 @@ python scripts/crawler.py -o data.json -q    # 静默保存到文件
 
 ```
 nau-lecture-skill/
-├── SKILL.md                              # 本文件
+├── SKILL.md                   # 本文件
 ├── scripts/
-│   ├── serve.py                          # 主入口
-│   └── crawler.py                        # 数据获取模块
+│   ├── serve.py               # 主入口
+│   └── crawler.py             # 数据获取模块
 └── references/
-    ├── template.html                     # 默认视图（蓝色企业风格）
-    └── frontend-design-template.html     # 档案视图（深色学术风格）
+    └── template.html           # 单文件双主题（CSS变量切换）
 ```
 
 ## HTML 界面功能
 
 | 功能 | 说明 |
 |------|------|
-| 双主题切换 | 默认视图 ⇄ 档案视图，数据通过 sessionStorage 共享，不重复请求 |
+| 单页双主题 | 点击按钮即时切换（默认蓝 / 深色学术风），CSS 变量驱动，不请求服务器 |
 | Loading 动画 | 先展示过渡动画 + 实时爬取进度，数据就绪后自动渲染 |
 | 统计卡片 | 总讲座数、未开始 / 已过时 / 未知数量 |
 | 状态筛选 | 一键过滤三种状态 |
@@ -135,7 +134,6 @@ Python 标准库：`threading`, `datetime`, `re`, `json`, `http.server`, `webbro
 
 | 文件 | 功能 |
 |------|------|
-| `scripts/serve.py` | 主入口：后台爬取 → HTTP 服务（双模板路由） → 自动打开浏览器 |
-| `scripts/crawler.py` | 数据获取：列表页链接提取 → 详情页解析 → JSON 输出 |
-| `references/template.html` | 默认视图：蓝色企业风格（Microsoft YaHei） |
-| `references/frontend-design-template.html` | 档案视图：深色学术风格（Cormorant Garamond + JetBrains Mono + grain texture） |
+| `scripts/serve.py` | 主入口：后台爬取 → HTTP 服务 → 自动打开浏览器 |
+| `scripts/crawler.py` | 数据获取：列表页 → 详情页 → JSON 输出 |
+| `references/template.html` | 单文件双主题：默认蓝色企业风 ⇄ 深色学术档案风（CSS 变量即时切换） |
