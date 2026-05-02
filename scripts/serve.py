@@ -88,7 +88,7 @@ class LectureHTTPHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(resp.encode("utf-8"))
 
 
-def enrich_background():
+def enrich_background(server):
     """后台线程：逐条富化讲座数据"""
     cv = LectureHTTPHandler.cv
     lectures = cv["init_data"]["lectures"]
@@ -100,7 +100,6 @@ def enrich_background():
         print(f"  [PHASE-2 {idx+1}/{len(lectures)}] {lec['url']}")
         enrich_lecture(lec)
 
-    # 排序并更新统计
     sorted_lectures = sort_lectures(lectures)
     stats = compute_stats(sorted_lectures)
 
@@ -112,6 +111,8 @@ def enrich_background():
 
     print(f"\n  [DONE] 全部完成: 总计 {stats['total']} 条 "
           f"(未开始 {stats['not_started']}, 已过时 {stats['expired']}, 未知 {stats['unknown']})")
+    print(f"\n  数据已就绪，5 秒后自动关闭服务...")
+    threading.Timer(5, server.shutdown).start()
 
 
 def main():
@@ -164,12 +165,11 @@ def main():
     url = f"http://{args.host}:{args.port}"
 
     print(f"  服务地址: {url}")
-    print(f"  按 Ctrl+C 停止服务")
     print("=" * 56)
 
     # === 第二阶段：后台富化 ===
     print(f"\n[PHASE-2] 后台开始补充详情...")
-    t = threading.Thread(target=enrich_background, daemon=True)
+    t = threading.Thread(target=enrich_background, args=(server,), daemon=True)
     t.start()
 
     # === 打开浏览器 ===
