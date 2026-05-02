@@ -32,7 +32,6 @@ from crawler import get_lectures_from_list, enrich_lecture, sort_lectures, compu
 class LectureHTTPHandler(http.server.SimpleHTTPRequestHandler):
     cv = {
         "template_html": "",
-        "alt_template_html": "",
         "init_data": None,
         "phase": "init",
         "logs": [],
@@ -46,21 +45,17 @@ class LectureHTTPHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/" or self.path == "/index.html":
-            self._serve_html(LectureHTTPHandler.cv["template_html"])
-        elif self.path == "/template.html":
-            self._serve_html(LectureHTTPHandler.cv["template_html"])
-        elif self.path == "/frontend-design-template.html":
-            self._serve_html(LectureHTTPHandler.cv["alt_template_html"])
+            self._serve_html()
         elif self.path == "/crawl":
             self._serve_crawl_api()
         else:
             super().do_GET()
 
-    def _serve_html(self, html):
+    def _serve_html(self):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
-        self.wfile.write(html.encode("utf-8"))
+        self.wfile.write(LectureHTTPHandler.cv["template_html"].encode("utf-8"))
 
     def _serve_crawl_api(self):
         cv = LectureHTTPHandler.cv
@@ -134,19 +129,15 @@ def main():
 
     # 读取模板
     template_path = os.path.join(REF_DIR, "template.html")
-    alt_template_path = os.path.join(REF_DIR, "frontend-design-template.html")
     if not os.path.exists(template_path):
         print(f"[ERROR] 模板文件不存在: {template_path}")
         sys.exit(1)
     with open(template_path, "r", encoding="utf-8") as f:
         cv["template_html"] = f.read()
-    if os.path.exists(alt_template_path):
-        with open(alt_template_path, "r", encoding="utf-8") as f:
-            cv["alt_template_html"] = f.read()
 
     print("=" * 56)
     print("  南京审计大学学术讲座 — 全状态查询系统")
-    print("  双主题: 默认视图 / 档案视图")
+    print("  点击切换按钮切换主题")
     print("=" * 56)
 
     # === 第一阶段：列表页（秒级） ===
