@@ -127,6 +127,7 @@ a.cell-link:hover { text-decoration:underline; }
   </div>
   <div class="header-actions">
     <span style="font-size:12px;color:var(--gray)" id="ct"></span>
+    <button class="btn btn-outline" onclick="switchTheme()" style="padding:6px 16px;font-size:12px">⇄ 切换视图</button>
   </div>
 </div>
 
@@ -271,6 +272,16 @@ function ap(data){
     if(data.crawl_time) g('ct').textContent='更新于: '+data.crawl_time;
   }
   us(); af(); rl();
+  saveToStorage();
+}
+
+function saveToStorage(){
+  try { sessionStorage.setItem('nau_data', JSON.stringify({AL:AL,ST:ST,LG:LG,ct:g('ct').textContent,PH:PH})); } catch(e){}
+}
+
+function switchTheme(){
+  saveToStorage();
+  window.location.href='/frontend-design-template.html';
 }
 
 async function fd(){
@@ -305,6 +316,19 @@ async function fd(){
 }
 
 document.addEventListener('DOMContentLoaded',function(){
+  var cached=null;
+  try { cached=sessionStorage.getItem('nau_data'); } catch(e){}
+  if(cached){
+    try {
+      var d=JSON.parse(cached);
+      AL=d.AL||[]; ST=d.ST||{total:0,not_started:0,expired:0,unknown:0};
+      LG=d.LG||[]; PH=d.PH||'done';
+      if(d.ct) g('ct').textContent=d.ct;
+      us(); af(); rl();
+      hl();
+      if(PH==='done') return;
+    } catch(e){}
+  }
   sl('正在获取讲座列表...');
   g('ls').textContent='从 nau.edu.cn 提取基本信息';
   g('ll').innerHTML='正在连接服务器...';
