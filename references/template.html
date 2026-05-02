@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>南京审计大学学术讲座查询系统</title>
+<style>
+:root {
+  --primary: #165DFF; --success: #00B42A; --danger: #F53F3F;
+  --gray: #86909C; --bg: #F7F8FA; --card: #FFFFFF;
+  --text: #1D2129; --border: #E5E6EB; --hover: #F0F7FF;
+  --bg-green: #E6F7EF; --bg-red: #FFF2F0; --bg-gray: #F7F8FA;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Microsoft YaHei","微软雅黑",-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; line-height:1.6; }
+
+.loading-overlay {
+  position:fixed; inset:0; background:rgba(247,248,250,0.94); display:flex;
+  flex-direction:column; align-items:center; justify-content:center;
+  z-index:1000; transition:opacity 0.4s ease;
+}
+.loading-overlay.hidden { opacity:0; pointer-events:none; }
+.loading-spinner {
+  width:56px; height:56px; border:4px solid var(--border);
+  border-top-color:var(--primary); border-radius:50%;
+  animation:spin 0.8s linear infinite; margin-bottom:20px;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-title { font-size:18px; font-weight:700; color:var(--primary); margin-bottom:6px; }
+.loading-sub { font-size:13px; color:var(--gray); margin-bottom:16px; }
+.loading-log { font-size:12px; color:var(--gray); font-family:Consolas,monospace; max-height:140px; overflow-y:auto; text-align:center; line-height:1.8; }
+
+.header { background:var(--card); border-bottom:1px solid var(--border); padding:24px 40px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+.header h1 { font-size:28px; font-weight:700; color:var(--primary); }
+.header p { font-size:13px; color:var(--gray); margin-top:4px; }
+.header-actions { display:flex; align-items:center; gap:12px; }
+.btn {
+  display:inline-flex; align-items:center; gap:6px; padding:10px 28px;
+  font-size:14px; font-weight:600; border:none; border-radius:6px; cursor:pointer;
+  transition:background 0.2s,opacity 0.2s;
+}
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover:not(:disabled) { background:#0E4BDB; }
+.btn-outline { background:var(--card); color:var(--gray); border:1px solid var(--border); }
+.btn-outline:hover { border-color:var(--primary); color:var(--primary); }
+
+.stats-row { display:flex; gap:16px; padding:20px 40px; flex-wrap:wrap; }
+.stat-card {
+  flex:1; min-width:150px; background:var(--card); border:1px solid var(--border);
+  border-radius:10px; padding:20px 24px; text-align:center;
+  transition:border-color 0.2s,transform 0.15s;
+}
+.stat-card:hover { transform:translateY(-2px); }
+.stat-card .icon { font-size:28px; margin-bottom:8px; }
+.stat-card .value { font-size:30px; font-weight:700; margin-bottom:4px; }
+.stat-card .label { font-size:13px; color:var(--gray); }
+.st0 { border-left:4px solid var(--primary); } .st0 .value { color:var(--primary); }
+.st1 { border-left:4px solid var(--success); } .st1 .value { color:var(--success); }
+.st2 { border-left:4px solid var(--danger); }  .st2 .value { color:var(--danger); }
+.st3 { border-left:4px solid var(--gray); }    .st3 .value { color:var(--gray); }
+
+.filter-bar { display:flex; gap:12px; padding:0 40px 16px; align-items:center; flex-wrap:wrap; }
+.filter-btn {
+  padding:6px 16px; font-size:13px; border:1px solid var(--border);
+  border-radius:20px; background:var(--card); cursor:pointer; transition:all 0.2s;
+}
+.filter-btn:hover { border-color:var(--primary); color:var(--primary); }
+.filter-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.search-input {
+  flex:1; min-width:220px; max-width:340px; margin-left:auto;
+  padding:8px 14px; font-size:14px; border:1px solid var(--border);
+  border-radius:8px; outline:none; transition:border-color 0.2s;
+}
+.search-input:focus { border-color:var(--primary); }
+.result-count { font-size:13px; color:var(--gray); margin-left:8px; }
+
+.table-wrap {
+  margin:0 40px 24px; background:var(--card); border:1px solid var(--border);
+  border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.04);
+}
+table { width:100%; border-collapse:collapse; font-size:14px; }
+thead th {
+  background:var(--primary); color:#fff; font-weight:700;
+  font-size:14px; padding:14px 14px; text-align:center; white-space:nowrap;
+}
+th.sortable { cursor:pointer; } th.sortable:hover { background:#0E4BDB; }
+tbody td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tbody tr:hover { background:var(--hover); }
+.s-未开始 { background:var(--bg-green); color:var(--success); }
+.s-已过时 { background:var(--bg-red);    color:var(--danger); }
+.s-未知   { background:var(--bg-gray);   color:var(--gray); }
+.s-未开始:hover, .s-已过时:hover, .s-未知:hover { filter:brightness(0.97); }
+
+.log-section { margin:0 40px 24px; }
+.log-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.log-box {
+  background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:14px 18px; font-family:Consolas,monospace; font-size:12px;
+  max-height:180px; overflow-y:auto; color:var(--text);
+}
+.footer {
+  margin:0 40px 30px; padding:14px 20px; background:var(--card);
+  border:1px solid var(--border); border-radius:10px; text-align:center;
+  font-size:13px; color:var(--gray);
+}
+.dot-g { color:var(--success); font-weight:700; }
+.dot-r { color:var(--danger); font-weight:700; }
+.dot-a { color:var(--gray); font-weight:700; }
+a.cell-link { color:var(--primary); text-decoration:none; font-size:13px; }
+a.cell-link:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="lo">
+  <div class="loading-spinner"></div>
+  <div class="loading-title" id="lt">正在获取讲座列表...</div>
+  <div class="loading-sub" id="ls">从 nau.edu.cn 提取基本信息</div>
+  <div class="loading-log" id="ll">正在连接服务器...</div>
+</div>
+
+<div class="header">
+  <div>
+    <h1>南京审计大学学术讲座查询系统</h1>
+    <p>实时爬取 · 全状态展示 · 智能排序 | 数据源: nau.edu.cn</p>
+  </div>
+  <div class="header-actions">
+    <span style="font-size:12px;color:var(--gray)" id="ct"></span>
+    <button class="btn btn-outline" onclick="rd()">刷新数据</button>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card st0"><div class="icon">📅</div><div class="value" id="s0">—</div><div class="label">总讲座数</div></div>
+  <div class="stat-card st1"><div class="icon">⏰</div><div class="value" id="s1">—</div><div class="label">未开始</div></div>
+  <div class="stat-card st2"><div class="icon">📜</div><div class="value" id="s2">—</div><div class="label">已过时</div></div>
+  <div class="stat-card st3"><div class="icon">❓</div><div class="value" id="s3">—</div><div class="label">状态未知</div></div>
+</div>
+
+<div class="filter-bar">
+  <label>筛选：</label>
+  <button class="filter-btn active" onclick="sf('all',this)">全部</button>
+  <button class="filter-btn" onclick="sf('未开始',this)">未开始</button>
+  <button class="filter-btn" onclick="sf('已过时',this)">已过时</button>
+  <button class="filter-btn" onclick="sf('未知',this)">未知</button>
+  <input class="search-input" placeholder="搜索标题 / 报告人 / 主办方..." oninput="af()">
+  <span class="result-count" id="rc"></span>
+</div>
+
+<div class="table-wrap"><div style="overflow-x:auto">
+<table><thead><tr>
+  <th style="width:90px">状态</th>
+  <th class="sortable" style="width:180px" onclick="ts(this)" data-sort="time">讲座时间</th>
+  <th style="min-width:340px">讲座标题</th>
+  <th style="width:140px">报告人</th>
+  <th style="width:150px">主办方</th>
+  <th style="width:100px">详情链接</th>
+</tr></thead>
+<tbody id="tb"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray)">等待数据加载...</td></tr></tbody>
+</table>
+</div></div>
+
+<div class="log-section">
+  <div class="log-header"><h3>爬取日志</h3>
+    <button class="btn btn-outline" onclick="document.getElementById('lb').textContent='就绪'" style="padding:4px 14px;font-size:12px">清空</button>
+  </div>
+  <div class="log-box" id="lb">就绪</div>
+</div>
+
+<div class="footer">
+  <span>颜色说明：</span>
+  <span class="dot-g">● 未开始</span>
+  <span class="dot-r">● 已过时</span>
+  <span class="dot-a">● 未知</span>
+  <span style="margin-left:16px">|</span>
+  <span>点击详情链接可直接打开原讲座页</span>
+</div>
+
+<script>
+var AL=[], ST={total:0,not_started:0,expired:0,unknown:0};
+var CF='all', SF='time', SA=true, LG=[], TM=null, PH='init';
+
+function es(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function ea(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+function g(id){return document.getElementById(id);}
+
+function sl(msg){
+  g('lo').classList.remove('hidden');
+  if(msg) g('lt').textContent=msg;
+}
+function hl(){ g('lo').classList.add('hidden'); }
+
+function us(){
+  g('s0').textContent=ST.total;
+  g('s1').textContent=ST.not_started;
+  g('s2').textContent=ST.expired;
+  g('s3').textContent=ST.unknown;
+}
+
+function sf(f,btn){
+  CF=f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  af();
+}
+
+function af(){
+  var q=(document.querySelector('.search-input').value||'').toLowerCase().trim();
+  var F=AL.slice();
+  if(CF!=='all') F=F.filter(function(l){return l.status===CF;});
+  if(q) F=F.filter(function(l){
+    return (l.title||'').toLowerCase().indexOf(q)>-1
+        || (l.reporter||'').toLowerCase().indexOf(q)>-1
+        || (l.organizer||'').toLowerCase().indexOf(q)>-1;
+  });
+  F.sort(function(a,b){
+    var va=a.formatted_time||'', vb=b.formatted_time||'';
+    if(a.status==='已过时'&&b.status==='已过时')
+      return SA ? vb.localeCompare(va) : va.localeCompare(vb);
+    return SA ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  g('rc').textContent='共 '+F.length+' 条记录';
+  rt(F);
+}
+
+function ts(th){
+  var f=th.dataset.sort;
+  if(SF===f){SA=!SA;}else{SF=f;SA=true;}
+  af();
+}
+
+function rt(L){
+  var tb=g('tb');
+  if(!L.length){
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray)">🔍 没有找到匹配的讲座记录</td></tr>';
+    return;
+  }
+  var h='';
+  for(var i=0;i<L.length;i++){
+    var l=L[i], td=l.formatted_time||'无';
+    if(td.length>=16) td=td.slice(0,16);
+    h+='<tr class="s-'+ea(l.status||'未知')+'">'
+      +'<td style="text-align:center;font-weight:700">'+es(l.status||'未知')+'</td>'
+      +'<td style="text-align:center;white-space:nowrap">'+es(td)+'</td>'
+      +'<td style="text-align:left;font-weight:600">'+es(l.title)+'</td>'
+      +'<td style="text-align:center">'+es(l.reporter)+'</td>'
+      +'<td style="text-align:center">'+es(l.organizer)+'</td>'
+      +'<td style="text-align:center">'+(l.url?'<a class="cell-link" href="'+ea(l.url)+'" target="_blank">打开详情</a>':'—')+'</td>'
+      +'</tr>';
+  }
+  tb.innerHTML=h;
+}
+
+function rl(){
+  var b=g('lb');
+  if(!LG.length){b.textContent='就绪';return;}
+  var h='';
+  for(var i=0;i<LG.length;i++){
+    var c=LG[i].indexOf('[ERROR]')>-1?'color:var(--danger)':LG[i].indexOf('[WARN]')>-1?'color:#FF7D00':'';
+    h+='<span style="'+c+'">'+es(LG[i])+'</span><br>';
+  }
+  b.innerHTML=h;
+}
+
+function ap(data){
+  if(!data||!data.lectures){ AL=[]; ST={total:0,not_started:0,expired:0,unknown:0}; }
+  else {
+    AL=data.lectures;
+    ST=data.stats||{total:0,not_started:0,expired:0,unknown:0};
+    if(data.logs) LG=data.logs;
+    if(data.crawl_time) g('ct').textContent='更新于: '+data.crawl_time;
+  }
+  us(); af(); rl();
+}
+
+async function rd(){
+  PH='init'; sl('正在刷新讲座数据...'); g('ls').textContent=''; g('ll').innerHTML='';
+  fd();
+}
+
+async function fd(){
+  g('ll').innerHTML='> 正在请求服务器...';
+  try {
+    var resp=await fetch('/crawl');
+    g('ll').innerHTML='> 服务器已响应';
+    var data=await resp.json();
+
+    if(data.status==='crawling'){
+      if(data.logs) g('ll').innerHTML=data.logs.slice(-6).map(es).join('<br>');
+      TM=setTimeout(fd,1500); return;
+    }
+    g('ll').innerHTML='> 数据已接收: 共 '+(data.stats?data.stats.total:0)+' 条';
+
+    var isNew=(PH==='init');
+    ap(data);
+    if(isNew){ hl(); }
+    PH=data.phase||'done';
+
+    if(PH==='enriching'){
+      g('ls').textContent='后台补充详情中... '+(data.enrich_progress||'');
+      TM=setTimeout(fd,2000);
+    } else if(PH==='done'){
+      g('ls').textContent='数据已全部就绪';
+    }
+  } catch(e){
+    g('lt').textContent='连接失败: '+e.message;
+    g('ll').textContent='将在 2 秒后重试...';
+    TM=setTimeout(fd,2000);
+  }
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  sl('正在获取讲座列表...');
+  g('ls').textContent='从 nau.edu.cn 提取基本信息';
+  g('ll').innerHTML='正在连接服务器...';
+  fd();
+});
+</script>
+</body>
+</html>
