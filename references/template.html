@@ -127,7 +127,6 @@ a.cell-link:hover { text-decoration:underline; }
   </div>
   <div class="header-actions">
     <span style="font-size:12px;color:var(--gray)" id="ct"></span>
-    <button class="btn btn-outline" onclick="rd()">刷新数据</button>
   </div>
 </div>
 
@@ -272,11 +271,6 @@ function ap(data){
     if(data.crawl_time) g('ct').textContent='更新于: '+data.crawl_time;
   }
   us(); af(); rl();
-}
-
-async function rd(){
-  PH='init'; sl('正在刷新讲座数据...'); g('ls').textContent=''; g('ll').innerHTML='';
-  fd();
 }
 
 async function fd(){
