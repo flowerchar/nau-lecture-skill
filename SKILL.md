@@ -9,7 +9,7 @@ user-invocable: true
 
 ## 概述
 
-本技能从南京审计大学官网学术活动页面（`https://www.nau.edu.cn/xshd/list1.htm`）爬取讲座信息，支持状态智能判定（未开始 / 已过时 / 未知），并通过本地 Web 服务提供一站式可视化查询。
+本技能从南京审计大学官网学术活动页面（`https://www.nau.edu.cn/xshd/list1.htm`）爬取讲座信息，支持状态智能判定（未开始 / 已过时 / 未知），生成自包含静态 HTML 供浏览器查看。
 
 ## 触发条件
 
@@ -21,34 +21,40 @@ user-invocable: true
 
 ## 使用流程
 
-### 主入口：一键启动
+### 主入口：一键生成
 
 ```bash
-python scripts/serve.py
+python scripts/crawler.py -m
 ```
 
 **这一个命令会依次完成：**
-1. 后台线程实时爬取最新讲座数据
-2. 立即启动本地 HTTP 服务（默认 `http://127.0.0.1:8080`）
-3. **自动打开浏览器** → 页面显示 loading 动画 + 实时日志
-4. 爬取完成后数据自动渲染，loading 消失
+1. 爬取列表页 + 详情页，获取完整讲座数据
+2. 生成自包含静态 HTML 文件（默认 `lectures.html`）
+3. 终端打印讲座摘要 + 网页链接 + 交互提示
 
-点击页面右上角"刷新数据"可实时重爬。
+**响应模板：**
+
+```
+已获取南京审计大学学术讲座数据：
+
+──────────────────────────────────────────────────────
+  ● 未开始 2026-05-06 14:30  传统文化视野中的苏东坡——莫砺锋…
+  …
+──────────────────────────────────────────────────────
+
+  共 14 条讲座（未开始 2 / 已过时 12 / 未知 0）
+  🌐 网页查看: file:///.../lectures.html
+
+  💬 你有哪些想听的讲座？和我交流分析后给出合适的建议。
+```
 
 ### 参数选项
 
 ```bash
-python scripts/serve.py --port 9000      # 指定端口
-python scripts/serve.py --no-browser     # 不自动打开浏览器
-python scripts/serve.py --timeout 20     # 自定义爬取超时
-python scripts/serve.py --host 0.0.0.0  # 允许局域网访问
-```
-
-### 备选方案：仅获取 JSON 数据
-
-```bash
-python scripts/crawler.py                    # 输出 JSON 到 stdout
-python scripts/crawler.py -o data.json -q    # 静默保存到文件
+python scripts/crawler.py -m out.html     # 指定输出文件名
+python scripts/crawler.py -m out.html --fast  # 快速模式（不爬详情）
+python scripts/crawler.py -o data.json    # 仅输出 JSON 到文件
+python scripts/crawler.py -q              # 静默模式
 ```
 
 ## 技能结构
@@ -57,8 +63,7 @@ python scripts/crawler.py -o data.json -q    # 静默保存到文件
 nau-lecture-skill/
 ├── SKILL.md                   # 本文件
 ├── scripts/
-│   ├── serve.py               # 主入口
-│   └── crawler.py             # 数据获取模块
+│   └── crawler.py             # 数据获取 + HTML 生成
 └── references/
     └── template.html           # 单文件双主题（CSS变量切换）
 ```
@@ -67,15 +72,14 @@ nau-lecture-skill/
 
 | 功能 | 说明 |
 |------|------|
-| 单页双主题 | 点击按钮即时切换（默认蓝 / 深色学术风），CSS 变量驱动，不请求服务器 |
-| Loading 动画 | 先展示过渡动画 + 实时爬取进度，数据就绪后自动渲染 |
+| 单页双主题 | 点击按钮即时切换（默认蓝 / 深色学术风），CSS 变量驱动 |
 | 统计卡片 | 总讲座数、未开始 / 已过时 / 未知数量 |
-| 状态筛选 | 一键过滤三种状态 |
+| 状态筛选 | 一键过滤三种状态（默认筛选"未开始"） |
 | 关键词搜索 | 实时搜索标题、报告人、主办方 |
-| 时间排序 | 点击表头切换升降序 |
+| 时间排序 | 点击表头切换升降序（▲/▼ 指示方向） |
+| 相对时间 | 时间下方显示"3天后"、"明天"等提示 |
 | 颜色标记 | 行底色按状态自动着色（绿 / 红 / 灰） |
-| 刷新按钮 | 触发服务端实时重爬（带 loading 动画） |
-| 日志面板 | 显示爬取进度和错误信息 |
+| 日志面板 | 折叠式，点击标题展开 |
 | 详情链接 | 点击直接打开原讲座页面 |
 
 ## 状态判定规则
@@ -85,25 +89,6 @@ nau-lecture-skill/
 | 未开始 | 绿 `#00B42A` | 当前时间 < 讲座时间 |
 | 已过时 | 红 `#F53F3F` | 当前时间 >= 讲座时间 |
 | 未知 | 灰 `#86909C` | 无法解析讲座时间（兜底，提示官网格式变动） |
-
-## 工作流详解
-
-当用户说"查看南审讲座"时，skill 应执行：
-
-1. **启动服务**：运行 `python scripts/serve.py`
-2. **告知用户**：服务地址（如 `http://127.0.0.1:8080`）和浏览器已自动打开
-3. **交互说明**：用户在网页中可筛选/搜索/排序/刷新
-
-### 响应模板
-
-```
-已启动南京审计大学学术讲座查询服务
-
-✅ 数据已获取：共 X 条讲座（未开始 X / 已过时 X）
-🌐 浏览器已打开：http://127.0.0.1:8080
-🔄 点击页面右上角"刷新数据"可实时更新
-⏹ 按 Ctrl+C 停止服务
-```
 
 ## 扩展与修改
 
@@ -128,12 +113,11 @@ nau-lecture-skill/
 pip install requests beautifulsoup4
 ```
 
-Python 标准库：`threading`, `datetime`, `re`, `json`, `http.server`, `webbrowser`
+Python 标准库：`datetime`, `re`, `json`, `os`, `sys`, `argparse`
 
 ## 核心模块
 
 | 文件 | 功能 |
 |------|------|
-| `scripts/serve.py` | 主入口：后台爬取 → HTTP 服务 → 自动打开浏览器 |
-| `scripts/crawler.py` | 数据获取：列表页 → 详情页 → JSON 输出 |
+| `scripts/crawler.py` | 数据获取：列表页 → 详情页 → JSON/HTML 输出 → 终端摘要 |
 | `references/template.html` | 单文件双主题：默认蓝色企业风 ⇄ 深色学术档案风（CSS 变量即时切换） |

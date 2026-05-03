@@ -348,16 +348,82 @@ def output_json(lectures, stats, logs, output_path=None):
     else:
         print(json_str)
 
-    return json_str
+    return json_str, data
+
+
+def output_html(lectures, stats, logs, output_path="lectures.html", template_path=None):
+    if template_path is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        template_path = os.path.join(os.path.dirname(script_dir), "references", "template.html")
+
+    if not os.path.exists(template_path):
+        print(f"[ERROR] 模板文件不存在: {template_path}", file=sys.stderr)
+        return None
+
+    with open(template_path, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    data = {
+        "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "source_url": MAIN_URL,
+        "stats": stats,
+        "lectures": lectures,
+        "logs": logs,
+    }
+    data_json = json.dumps(data, ensure_ascii=False)
+    html = template.replace("__LECTURE_DATA__", data_json)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    print(f"[INFO] HTML 已保存到 {output_path}")
+    return output_path
+
+
+def print_summary(lectures, stats, html_path=None):
+    """终端打印讲座摘要 + 网页链接 + 交互提示"""
+    icons = {"未开始": "●", "已过时": "O", "未知": "?"}
+    bar = "─" * 54
+
+    print()
+    print(f"  {bar}")
+    print(f"  {'状态':<6} {'时间':<18} {'标题':<28}")
+    print(f"  {bar}")
+    for l in lectures:
+        icon = icons.get(l["status"], "?")
+        title = l["title"]
+        if len(title) > 26:
+            title = title[:25] + "…"
+        t = l.get("formatted_time", "无")
+        if len(t) >= 16:
+            t = t[:16]
+        print(f"  {icon} {l['status']:<4} {t:<18} {title}")
+    print(f"  {bar}")
+    print()
+    print(f"  共 {stats['total']} 条讲座（未开始 {stats['not_started']} / 已过时 {stats['expired']} / 未知 {stats['unknown']}）")
+    if html_path:
+        abs_path = os.path.abspath(html_path)
+        print(f"  [WEB] 网页查看: file:///{abs_path}")
+    print()
+    print("  [TIP] 你有哪些想听的讲座？和我交流分析后给出合适的建议。")
+    print()
 
 
 # ======================== CLI 入口 ========================
 
 def main():
+    if sys.platform == "win32":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(
         description="南京审计大学学术讲座爬虫 - 数据获取工具"
     )
     parser.add_argument("--output", "-o", default=None, help="输出 JSON 文件路径")
+    parser.add_argument("--html", "-m", default=None, const="lectures.html", nargs="?", help="输出自包含 HTML 文件（默认: lectures.html）")
+    parser.add_argument("--template", default=None, help="HTML 模板路径")
     parser.add_argument("--timeout", "-t", type=int, default=15, help="列表页超时（秒）")
     parser.add_argument("--detail-timeout", "-d", type=int, default=20, help="详情页超时（秒）")
     parser.add_argument("--fast", action="store_true", help="快速模式：仅爬列表页，不爬详情")
@@ -371,7 +437,14 @@ def main():
         verbose=not args.quiet,
     )
 
-    output_json(lectures, stats, logs, output_path=args.output)
+    if args.html:
+        output_html(lectures, stats, logs, output_path=args.html, template_path=args.template)
+        if not args.quiet:
+            print_summary(lectures, stats, html_path=args.html)
+    else:
+        _, data = output_json(lectures, stats, logs, output_path=args.output)
+        if not args.quiet:
+            print_summary(lectures, stats)
 
     if stats["total"] == 0:
         sys.exit(1)
