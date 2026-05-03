@@ -267,11 +267,12 @@ body.dark .footer {
   <th style="width:90px">状态</th>
   <th class="sortable" style="width:180px" onclick="ts(this)" data-sort="time">讲座时间</th>
   <th style="min-width:340px">讲座标题</th>
+  <th style="width:120px">地点</th>
   <th style="width:140px">报告人</th>
   <th style="width:150px">主办方</th>
   <th style="width:100px">详情链接</th>
 </tr></thead>
-<tbody id="tb"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray)">暂无数据</td></tr></tbody>
+<tbody id="tb"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--gray)">暂无数据</td></tr></tbody>
 </table>
 </div></div>
 
@@ -375,7 +376,7 @@ function ts(th){
 function rt(L){
   var tb=g('tb'), isDark=document.body.classList.contains('dark');
   if(!L.length){
-    tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray)">没有找到匹配的讲座记录</td></tr>';
+    tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--gray)">没有找到匹配的讲座记录</td></tr>';
     return;
   }
   var h='';
@@ -391,6 +392,7 @@ function rt(L){
       +'<td style="text-align:center">'+statusHtml+'</td>'
       +'<td style="text-align:center;white-space:nowrap">'+timeHtml+'</td>'
       +'<td style="text-align:left;font-weight:600">'+es(l.title)+'</td>'
+      +'<td style="text-align:center;white-space:nowrap">'+es(l.location)+'</td>'
       +'<td style="text-align:center">'+es(l.reporter)+'</td>'
       +'<td style="text-align:center">'+es(l.organizer)+'</td>'
       +'<td style="text-align:center">'+(l.url?'<a class="cell-link" href="'+ea(l.url)+'" target="_blank">打开详情</a>':'—')+'</td>'

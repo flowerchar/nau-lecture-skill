@@ -145,6 +145,11 @@ def clean_organizer(organizer_text):
     return clean_field(organizer_text, prefixes)
 
 
+def clean_location(location_text):
+    prefixes = ["地点：", "地点:", "地址：", "地址:", "会场：", "会场:"]
+    return clean_field(location_text, prefixes)
+
+
 # ======================== 第一阶段：列表页快速提取 ========================
 
 def get_lectures_from_list(timeout=15):
@@ -186,6 +191,7 @@ def get_lectures_from_list(timeout=15):
                     "status": "未知",
                     "formatted_time": pub_date,
                     "title": title,
+                    "location": "加载中...",
                     "reporter": "加载中...",
                     "organizer": "加载中...",
                     "url": full_url,
@@ -202,7 +208,7 @@ def get_lectures_from_list(timeout=15):
 
 def enrich_lecture(lecture, timeout=20):
     """
-    爬取详情页，补充报告人、主办方、讲座时间。
+    爬取详情页，补充报告人、主办方、讲座时间、地点。
     原地修改 lecture dict。
     """
     try:
@@ -221,10 +227,12 @@ def enrich_lecture(lecture, timeout=20):
             ]
 
         time_info = "无"
+        location = "无"
         reporter = "无"
         organizer = "无"
 
         time_keywords = ["讲座时间", "活动时间", "举办时间", "时间", "日期", "开始"]
+        location_keywords = ["地点", "地址", "会场", "教室", "会议室"]
         reporter_keywords = ["报告人", "主讲人", "嘉宾", "主讲"]
         organizer_keywords = ["举办单位", "主办方", "承办方", "承办单位", "组织方"]
 
@@ -236,12 +244,15 @@ def enrich_lecture(lecture, timeout=20):
                 time_info = text
             elif any(kw in text for kw in reporter_keywords):
                 reporter = text
+            elif any(kw in text for kw in location_keywords):
+                location = text
 
         formatted_time = format_time(time_info)
         status = get_activity_status(formatted_time)
 
         lecture["status"] = status
         lecture["formatted_time"] = formatted_time
+        lecture["location"] = clean_location(location)
         lecture["reporter"] = clean_reporter(reporter)
         lecture["organizer"] = clean_organizer(organizer)
         lecture["_enriched"] = True
@@ -249,6 +260,7 @@ def enrich_lecture(lecture, timeout=20):
 
     except requests.exceptions.RequestException as e:
         print(f"[WARN] 详情页失败 {lecture['url']}: {e}", file=sys.stderr)
+        lecture["location"] = "无"
         lecture["reporter"] = "无"
         lecture["organizer"] = "无"
         lecture["_enriched"] = False
@@ -397,6 +409,9 @@ def print_summary(lectures, stats, html_path=None):
         t = l.get("formatted_time", "无")
         if len(t) >= 16:
             t = t[:16]
+        loc = l.get("location", "无")
+        if loc and loc != "无" and loc != "加载中...":
+            title = title + "  [" + loc + "]"
         print(f"  {icon} {l['status']:<4} {t:<18} {title}")
     print(f"  {bar}")
     print()
