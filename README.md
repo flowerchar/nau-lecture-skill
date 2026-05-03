@@ -41,4 +41,4 @@ python scripts/crawler.py -m
 
 ## 数据源
 
-[https://www.nau.edu.cn/xshd/list1.htm](https://www.nau.edu.cn/xshd/list1.htm)
+南京审计大学官网学术活动栏目

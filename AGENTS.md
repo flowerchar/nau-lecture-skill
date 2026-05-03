@@ -31,7 +31,7 @@ python scripts/crawler.py -q              # 静默模式
 
 ## 注意事项
 
-- 数据源: `https://www.nau.edu.cn/xshd/list1.htm`
+- 数据源: 南京审计大学官网学术活动栏目
 - 列表页用 `div.line1` 提取标题+链接，详情页用 `div.wp_articlecontent` 提取时间/报告人/主办方
 - 讲座时间格式多样，`format_time()` 处理粘连格式（`2026-05-1314:00`）和空格格式
 - 排序规则: 未开始→已过时→未知，已过时按时间倒序
