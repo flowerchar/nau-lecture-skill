@@ -174,7 +174,7 @@ def get_lectures_from_list(timeout=15):
             a_tags = div.find_all("a", recursive=False)
             for a in a_tags:
                 href = a.get("href", "").strip()
-                title = a.get_text(strip=True)
+                title = a.get("title", "").strip() or a.get_text(strip=True)
                 if not href or not title:
                     continue
                 full_url = urljoin(BASE_DOMAIN, href)
@@ -414,7 +414,8 @@ def print_summary(lectures, stats, html_path=None):
 def main():
     if sys.platform == "win32":
         try:
-            sys.stdout.reconfigure(encoding="utf-8")
+            import io
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
         except Exception:
             pass
 
