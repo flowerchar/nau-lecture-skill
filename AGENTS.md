@@ -41,4 +41,4 @@ python scripts/crawler.py -q              # 静默模式
 
 - 每次修改代码后必须**先本地测试通过**再推送到 GitHub
 - **推送前需征得开发者同意**，不允许未经确认直接 `git push`
-- 项目同时维护工作目录（`D:\githubRep\nau-lecture-skill`）和安装目录（`~\.config\opencode\skills\nau-lecture-skill`），两者需同步
+- **推送后自动同步**：`git push` 成功后，立即在 skill 安装目录（`~\.config\opencode\skills\nau-lecture-skill`）执行 `git pull` 拉取最新版本
