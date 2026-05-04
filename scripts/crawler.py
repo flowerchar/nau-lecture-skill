@@ -344,7 +344,7 @@ def compute_stats(lectures):
     }
 
 
-def output_json(lectures, stats, logs, output_path=None):
+def output_json(lectures, stats, logs, output_path=None, quiet=False):
     data = {
         "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "source_url": MAIN_URL,
@@ -358,7 +358,7 @@ def output_json(lectures, stats, logs, output_path=None):
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(json_str)
         print(f"[INFO] 数据已保存到 {output_path}")
-    else:
+    elif not quiet:
         print(json_str)
 
     return json_str, data
@@ -513,7 +513,7 @@ def main():
     if stats["total"] == 0:
         sys.exit(1)
 
-    _, data = output_json(lectures, stats, logs, output_path=args.output)
+    _, data = output_json(lectures, stats, logs, output_path=args.output, quiet=not args.output)
     save_cache(data)
 
     if not args.quiet:
