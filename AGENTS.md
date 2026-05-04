@@ -7,11 +7,12 @@
 ## 常用命令
 
 ```bash
-python scripts/crawler.py -m              # 爬取 + 生成 HTML（默认 lectures.html）
-python scripts/crawler.py -m out.html     # 指定输出文件名
+python scripts/crawler.py              # 爬取 + 终端摘要（不生成 HTML）
+python scripts/crawler.py -m           # 爬取 + 生成 HTML（默认 lectures.html）
+python scripts/crawler.py -m out.html  # 指定输出文件名
 python scripts/crawler.py -m out.html --fast  # 快速模式（不爬详情）
-python scripts/crawler.py -o data.json    # 仅输出 JSON 到 stdout/文件
-python scripts/crawler.py -q              # 静默模式
+python scripts/crawler.py -o data.json # 仅输出 JSON 到文件
+python scripts/crawler.py -q           # 静默模式
 ```
 
 ## 代码风格

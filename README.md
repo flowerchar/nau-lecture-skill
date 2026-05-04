@@ -10,10 +10,9 @@
 
 ```bash
 pip install requests beautifulsoup4
-python scripts/crawler.py -m
+python scripts/crawler.py         # 终端交互（不生成 HTML）
+python scripts/crawler.py -m      # 生成可视化面板
 ```
-
-爬取完成后生成 `lectures.html`，浏览器直接打开即可查看。
 
 ## 功能
 

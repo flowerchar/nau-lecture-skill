@@ -420,7 +420,7 @@ def print_summary(lectures, stats, html_path=None):
         abs_path = os.path.abspath(html_path)
         print(f"  [WEB] 网页查看: file:///{abs_path}")
     print()
-    print("  [TIP] 你有哪些想听的讲座？和我交流分析后给出合适的建议。")
+    print("  [TIP] 你有哪些想听的讲座？需要我给出可视化面板吗？")
     print()
 
 
