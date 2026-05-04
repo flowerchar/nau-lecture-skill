@@ -6,3 +6,4 @@ __pycache__/
 test111/
 lectures.html
 temp_*
+.lecture_cache.json

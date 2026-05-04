@@ -40,6 +40,7 @@ HEADERS = {
 
 MAIN_URL = "https://www.nau.edu.cn/xshd/list1.htm"
 BASE_DOMAIN = "https://www.nau.edu.cn"
+CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".lecture_cache.json")
 
 
 # ======================== 时间解析 ========================
@@ -363,7 +364,25 @@ def output_json(lectures, stats, logs, output_path=None):
     return json_str, data
 
 
-def output_html(lectures, stats, logs, output_path="lectures.html", template_path=None):
+def save_cache(data):
+    try:
+        with open(CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def load_cache():
+    try:
+        if os.path.exists(CACHE_FILE):
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
+
+
+def output_html_from_data(data, output_path="lectures.html", template_path=None):
     if template_path is None:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         template_path = os.path.join(os.path.dirname(script_dir), "references", "template.html")
@@ -375,13 +394,6 @@ def output_html(lectures, stats, logs, output_path="lectures.html", template_pat
     with open(template_path, "r", encoding="utf-8") as f:
         template = f.read()
 
-    data = {
-        "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "source_url": MAIN_URL,
-        "stats": stats,
-        "lectures": lectures,
-        "logs": logs,
-    }
     data_json = json.dumps(data, ensure_ascii=False)
     html = template.replace("__LECTURE_DATA__", data_json)
 
@@ -390,6 +402,17 @@ def output_html(lectures, stats, logs, output_path="lectures.html", template_pat
 
     print(f"[INFO] HTML 已保存到 {output_path}")
     return output_path
+
+
+def output_html(lectures, stats, logs, output_path="lectures.html", template_path=None):
+    data = {
+        "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "source_url": MAIN_URL,
+        "stats": stats,
+        "lectures": lectures,
+        "logs": logs,
+    }
+    return output_html_from_data(data, output_path, template_path)
 
 
 def print_summary(lectures, stats, html_path=None):
@@ -446,6 +469,40 @@ def main():
     parser.add_argument("--quiet", "-q", action="store_true", help="静默模式")
     args = parser.parse_args()
 
+    # --- HTML 模式：优先用缓存，避免重复爬取 ---
+    if args.html:
+        cached = load_cache()
+        if cached and "lectures" in cached:
+            if not args.quiet:
+                print("[CACHE] 使用缓存数据，无需重新爬取")
+            data = cached
+            lectures = data["lectures"]
+            stats = data["stats"]
+            logs = data.get("logs", [])
+        else:
+            lectures, stats, logs = crawl_all(
+                timeout=args.timeout,
+                detail_timeout=args.detail_timeout,
+                fast_only=args.fast,
+                verbose=not args.quiet,
+            )
+            if stats["total"] == 0:
+                sys.exit(1)
+            data = {
+                "crawl_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "source_url": MAIN_URL,
+                "stats": stats,
+                "lectures": lectures,
+                "logs": logs,
+            }
+            save_cache(data)
+
+        output_html_from_data(data, output_path=args.html, template_path=args.template)
+        if not args.quiet:
+            print_summary(lectures, stats, html_path=args.html)
+        return
+
+    # --- 终端模式：爬取 + 缓存 ---
     lectures, stats, logs = crawl_all(
         timeout=args.timeout,
         detail_timeout=args.detail_timeout,
@@ -453,17 +510,14 @@ def main():
         verbose=not args.quiet,
     )
 
-    if args.html:
-        output_html(lectures, stats, logs, output_path=args.html, template_path=args.template)
-        if not args.quiet:
-            print_summary(lectures, stats, html_path=args.html)
-    else:
-        _, data = output_json(lectures, stats, logs, output_path=args.output)
-        if not args.quiet:
-            print_summary(lectures, stats)
-
     if stats["total"] == 0:
         sys.exit(1)
+
+    _, data = output_json(lectures, stats, logs, output_path=args.output)
+    save_cache(data)
+
+    if not args.quiet:
+        print_summary(lectures, stats)
 
 
 if __name__ == "__main__":
